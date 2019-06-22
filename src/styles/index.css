@@ -1,0 +1,11 @@
+/*
+    此处写公共样式, 在main.js中加载全局有效
+*/
+* {
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+}

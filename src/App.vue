@@ -1,14 +1,21 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <!-- <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-     -->
-    </div>
+    <!-- 路由坑 -->
     <router-view/>
   </div>
 </template>
 
-<style lang="less">
+<script>
+export default {
+  name: 'App',
+  data () {
+    return {}
+  }
+}
+</script>
 
+<style lang="less" scoped>
+  #app {
+    height: 100%;
+  }
 </style>

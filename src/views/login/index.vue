@@ -1,0 +1,227 @@
+<template>
+  <div class="login-wrap">
+    <div class="login-form-wrap">
+      <div class="login-head">
+        <img
+          src="./logo_index.png"
+          alt=""
+        >
+      </div>
+      <div class="login-form">
+        <!--
+          表单验证:
+          rules 配置验证规则
+          将需要验证的字段通过prop属性配置到el-form-item
+
+          ref 获取表单组件, 可手动调用表单组件的验证方法
+         -->
+        <el-form
+          ref="ruleForm"
+          :model="form"
+          :rules='rules'
+        >
+          <el-form-item prop='mobile'>
+            <el-input
+              v-model="form.mobile"
+              placeholder='手机号'
+            ></el-input>
+          </el-form-item>
+          <el-form-item prop='code'>
+            <!-- 支持栅格布局, 一共为24列 -->
+            <el-col :span='12'>
+              <el-input
+                v-model="form.code"
+                placeholder='验证码'
+              ></el-input>
+            </el-col>
+            <el-col
+              :span='8'
+              :offset='2'
+            >
+              <el-button
+                type="primary"
+                @click="handleSendCode"
+              >获取验证码</el-button>
+            </el-col>
+
+          </el-form-item>
+          <el-form-item>
+            <!-- 给组件加class会作用到其根元素上 -->
+            <el-button
+              class='btn-login'
+              type="primary"
+              @click="handleLogin"
+              :loading='loading'
+            >{{load}}</el-button>
+            <!-- <el-button>取消</el-button> -->
+          </el-form-item>
+        </el-form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios'
+// 加载极验模块, 会得到一个全局变量 initGeetest
+import '@/vendor/gt.js'
+
+export default {
+  name: 'AppLogin',
+  data () {
+    return {
+      form: {
+        mobile: '',
+        code: ''
+      },
+      rules: {
+        mobile: [
+          { required: true, message: '请输入手机号', trigger: 'blur' },
+          { len: 11, message: '长度为11个字符', trigger: 'blur' }
+        ],
+        code: [
+          { required: true, message: '请输入验证码', trigger: 'blur' },
+          { len: 6, message: '长度为6个字符', trigger: 'blur' }
+        ]
+      },
+      captchaObj: null,
+      load: '登录',
+      loading: false
+    }
+  },
+  methods: {
+    handleLogin () {
+      // console.log('submit!')
+      // 表单验证
+      this.$refs['ruleForm'].validate((valid) => {
+        if (!valid) {
+          return
+          // 未通过表单验证
+        }
+        // 表单验证通过提交登陆
+        this.login()
+      })
+    },
+    // 登录
+    login () {
+      // 设置登录按钮状态
+      this.loading = true
+      this.load = '加载中'
+      axios({
+        method: 'POST',
+        url: `http://ttapi.research.itcast.cn/mp/v1_0/authorizations`,
+        data: this.form
+      }).then(res => { // >= 200 && < 400 的状态码都会进入这里
+        this.$message({
+          message: '登陆成功!',
+          type: 'success'
+        })
+        // console.log(res.data)
+        // 建议路由跳转都使用name跳转, 路由传参非常方便
+        this.$router.push({
+          name: 'home'
+        })
+        // 设置登录按钮状态
+        this.loading = false
+        this.load = '登录'
+      }).catch(err => { // >=400 的 http 状态码会进入 catch 中
+        // console.dir(err)
+        if (err.response.status === 400) {
+          this.$message.error('登录失败, 手机号或验证码错误!')
+        }
+        // 设置登录按钮状态
+        this.loading = false
+        this.load = '登录'
+      })
+    },
+    handleSendCode () {
+      if (this.captchaObj) {
+        console.log(0)
+        return this.captchaObj.verify()// 显示验证码
+      }
+      // console.log(0)
+      const { mobile } = this.form
+      axios({
+        method: 'GET',
+        url: `http://ttapi.research.itcast.cn/mp/v1_0/captchas/${mobile}`
+      }).then(res => {
+        // console.log(this)VueComponent
+        // 请检测data的数据结构， 保证data.gt, data.challenge, data.success有值
+        const data = res.data.data
+        window.initGeetest({
+          // 以下配置参数来自服务端 SDK
+          gt: data.gt,
+          challenge: data.challenge,
+          offline: !data.success,
+          new_captcha: data.new_captcha,
+          product: 'bind'// 隐藏按钮式
+        }, (captchaObj) => {
+          // console.log(this)undefined
+          // console.log(this)VueComponent <-- 箭头函数
+          this.captchaObj = captchaObj
+          // 这里可以调用验证实例 captchaObj 的实例方法
+          // console.log(captchaObj)
+          captchaObj.onReady(function () {
+            // 验证码ready之后才能调用verify方法显示验证码
+            captchaObj.verify()// 显示验证码
+          }).onSuccess(function () {
+            // your code
+            const {
+              geetest_challenge: challenge,
+              geetest_seccode: seccode,
+              geetest_validate: validate
+            } = captchaObj.getValidate()
+            // console.log(captchaObj.getValidate())
+            axios({
+              method: 'GET',
+              url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${mobile}`,
+              params: { // 专门用来传递query查询字符串参数
+                challenge,
+                seccode,
+                validate
+              }
+            }).then(res => {
+              // console.log(res.data)
+            })
+          }).onError(function () {
+            // your code
+          })
+          // 按钮提交事件
+          // some code
+          // 检测验证码是否ready, 验证码的onReady是否执行
+          // some code
+        })
+      })
+    }
+  }
+}
+</script>
+
+<style lang='less' scoped>
+.login-wrap {
+  height: 100%;
+  display: flex;
+  // 让内容在页面居中显示
+  justify-content: center;
+  align-items: center;
+  background: url("./login_bg.jpg");
+  .login-form-wrap {
+    padding: 15px 20px 8px;
+    border-radius: 6px;
+    background: #fff;
+    .login-head {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      img {
+        width: 65%;
+      }
+    }
+    .btn-login {
+      width: 100%;
+    }
+  }
+}
+</style>
