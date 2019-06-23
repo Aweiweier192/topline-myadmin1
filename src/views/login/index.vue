@@ -39,11 +39,17 @@
               :offset='2'
             >
               <el-button
+                v-model='secondCount'
                 type="primary"
                 @click="handleSendCode"
-              >获取验证码</el-button>
+                :disabled='!!timerCount || codeLoading'
+              >{{timerCount? `剩余${secondCount}秒`: '获取验证码'}}</el-button>
             </el-col>
-
+          </el-form-item>
+          <el-form-item prop='checked'>
+            <el-checkbox v-model="form.checked">
+              <span class='checkspan'>我已阅读并同意<a href="#">用户协议</a>和<a href="#">隐私条款</a></span>
+            </el-checkbox>
           </el-form-item>
           <el-form-item>
             <!-- 给组件加class会作用到其根元素上 -->
@@ -65,14 +71,20 @@
 import axios from 'axios'
 // 加载极验模块, 会得到一个全局变量 initGeetest
 import '@/vendor/gt.js'
+const timerAll = 60
 
 export default {
   name: 'AppLogin',
   data () {
     return {
+      secondCount: timerAll,
+      timerCount: null,
+      initeMobile: '',
+      codeLoading: false,
       form: {
-        mobile: '',
-        code: ''
+        mobile: '15603266036',
+        code: '',
+        checked: ''
       },
       rules: {
         mobile: [
@@ -82,6 +94,11 @@ export default {
         code: [
           { required: true, message: '请输入验证码', trigger: 'blur' },
           { len: 6, message: '长度为6个字符', trigger: 'blur' }
+        ],
+        checked: [
+          // pattern 正则表达式
+          { required: true, message: '请勾选用户协议', trigger: 'change' },
+          { pattern: /true/, message: '请勾选用户协议', trigger: 'change' }
         ]
       },
       captchaObj: null,
@@ -135,17 +152,40 @@ export default {
       })
     },
     handleSendCode () {
+      // 禁用验证按钮
+      this.codeLoading = true
+      // Function(props: array | string, callback: Function(errorMessage: string))
+      // 验证手机
+      this.$refs['ruleForm'].validateField('mobile', (errorMessage) => {
+        if (errorMessage.trim().length > 0) {
+          return false
+          // 未通过表单验证
+        }
+      })
+
+      // 是否已有人机交互验证
       if (this.captchaObj) {
-        console.log(0)
-        return this.captchaObj.verify()// 显示验证码
+        if (this.initeMobile !== this.form.mobile) {
+          // 除去已有的验证码DOM元素
+          document.body.removeChild(document.querySelector('.geetest_panel'))
+          this.showGeetest()
+        } else {
+          this.captchaObj.verify()
+        }
+      } else {
+        // 这里是第一次初始化验证码插件
+        this.showGeetest()
       }
-      // console.log(0)
-      const { mobile } = this.form
+    },
+
+    showGeetest () {
+      // const { mobile } = this.form
       axios({
         method: 'GET',
-        url: `http://ttapi.research.itcast.cn/mp/v1_0/captchas/${mobile}`
+        url: `http://ttapi.research.itcast.cn/mp/v1_0/captchas/${this.form.mobile}`
       }).then(res => {
         // console.log(this)VueComponent
+        // 获取初始化验证码参数
         // 请检测data的数据结构， 保证data.gt, data.challenge, data.success有值
         const data = res.data.data
         window.initGeetest({
@@ -161,10 +201,14 @@ export default {
           this.captchaObj = captchaObj
           // 这里可以调用验证实例 captchaObj 的实例方法
           // console.log(captchaObj)
-          captchaObj.onReady(function () {
+          captchaObj.onReady(() => {
+            // 获取初始化手机号
+            this.initeMobile = this.form.mobile
             // 验证码ready之后才能调用verify方法显示验证码
             captchaObj.verify()// 显示验证码
-          }).onSuccess(function () {
+            // 解除验证码禁用
+            this.codeLoading = false
+          }).onSuccess(() => {
             // your code
             const {
               geetest_challenge: challenge,
@@ -172,16 +216,21 @@ export default {
               geetest_validate: validate
             } = captchaObj.getValidate()
             // console.log(captchaObj.getValidate())
+            // 调用 获取短信验证码 (极验 API2）接口，发送短信
             axios({
               method: 'GET',
-              url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${mobile}`,
+              url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${this.form.mobile}`,
               params: { // 专门用来传递query查询字符串参数
                 challenge,
                 seccode,
                 validate
               }
             }).then(res => {
+              // 发送验证码成功
               // console.log(res.data)
+              // 函数中的 function函数中的this指向window
+              // 验证码到计时
+              this.timeDown()
             })
           }).onError(function () {
             // your code
@@ -192,6 +241,19 @@ export default {
           // some code
         })
       })
+    },
+    // 倒计时
+    timeDown () {
+      this.timerCount = window.setInterval(() => {
+        if (this.secondCount > 0) {
+          this.secondCount--
+        } else {
+          this.secondCount = 0
+          window.clearInterval(this.timerCount)
+          this.timerCount = null
+          this.secondCount = timerAll
+        }
+      }, 1000)
     }
   }
 }
@@ -221,6 +283,9 @@ export default {
     }
     .btn-login {
       width: 100%;
+    }
+    .checkspan {
+      padding-left: -10px;
     }
   }
 }

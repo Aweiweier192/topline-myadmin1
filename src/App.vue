@@ -1,5 +1,7 @@
 <template>
   <div id="app">
+    <!-- 测试字体图标 -->
+    <!-- <p><i class='iconfont iconaccount'></i>App Component</p> -->
     <!-- 路由坑 -->
     <router-view/>
   </div>
