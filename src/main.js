@@ -9,6 +9,9 @@ import router from './router'
 import 'element-ui/lib/theme-chalk/index.css'
 import './styles/index.less'
 
+// 加载进度条模块样式，全局通用
+import 'nprogress/nprogress.css'
+
 // 为神魔这样写
 Vue.use(ElementUI)
 

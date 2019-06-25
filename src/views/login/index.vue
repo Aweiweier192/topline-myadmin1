@@ -71,7 +71,7 @@
 import axios from 'axios'
 // 加载极验模块, 会得到一个全局变量 initGeetest
 import '@/vendor/gt.js'
-const timerAll = 60
+const timerAll = 5
 
 export default {
   name: 'AppLogin',
@@ -129,6 +129,9 @@ export default {
         url: `http://ttapi.research.itcast.cn/mp/v1_0/authorizations`,
         data: this.form
       }).then(res => { // >= 200 && < 400 的状态码都会进入这里
+        console.log(res.data)
+        // 使用本地存储，保存用户信息
+        window.localStorage.setItem('userInfo', JSON.stringify(res.data.data))
         this.$message({
           message: '登陆成功!',
           type: 'success'
