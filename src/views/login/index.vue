@@ -129,10 +129,11 @@ export default {
         method: 'POST',
         url: `/authorizations`,
         data: this.form
-      }).then(res => { // >= 200 && < 400 的状态码都会进入这里
-        console.log(res.data)
+      }).then(data => { // >= 200 && < 400 的状态码都会进入这里
+        // 在响应拦截器处，统一处理响应的数据格式 response.data.data = data
+        // console.log(res.data)
         // 使用本地存储，保存用户信息
-        window.localStorage.setItem('userInfo', JSON.stringify(res.data.data))
+        window.localStorage.setItem('userInfo', JSON.stringify(data))
         this.$message({
           message: '登陆成功!',
           type: 'success'
@@ -187,11 +188,11 @@ export default {
       this.$axios({
         method: 'GET',
         url: `/captchas/${this.form.mobile}`
-      }).then(res => {
+      }).then(data => {
         // console.log(this)VueComponent
         // 获取初始化验证码参数
         // 请检测data的数据结构， 保证data.gt, data.challenge, data.success有值
-        const data = res.data.data
+        // const data = res.data.data
         window.initGeetest({
           // 以下配置参数来自服务端 SDK
           gt: data.gt,
@@ -229,7 +230,7 @@ export default {
                 seccode,
                 validate
               }
-            }).then(res => {
+            }).then(data => {
               // 发送验证码成功
               // console.log(res.data)
               // 函数中的 function函数中的this指向window

@@ -132,7 +132,18 @@ export default {
       }]
     }
   },
+  created () {
+    this.loadArticles()
+  },
   methods: {
+    loadArticles () {
+      this.$axios({
+        method: 'GET',
+        url: '/articles'
+      }).then(data => {
+        console.log(data)
+      })
+    },
     onSubmit () {
       console.log('submit!')
     }
@@ -142,6 +153,6 @@ export default {
 
 <style lang='less' scoped>
 .fliter-card {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 </style>
