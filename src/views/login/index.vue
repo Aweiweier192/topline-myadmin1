@@ -68,7 +68,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+// 已将axios放到Vue原型中 -- $axios
+// import axios from 'axios'
 // 加载极验模块, 会得到一个全局变量 initGeetest
 import '@/vendor/gt.js'
 const timerAll = 5
@@ -124,9 +125,9 @@ export default {
       // 设置登录按钮状态
       this.loading = true
       this.load = '加载中'
-      axios({
+      this.$axios({
         method: 'POST',
-        url: `http://ttapi.research.itcast.cn/mp/v1_0/authorizations`,
+        url: `/authorizations`,
         data: this.form
       }).then(res => { // >= 200 && < 400 的状态码都会进入这里
         console.log(res.data)
@@ -183,9 +184,9 @@ export default {
 
     showGeetest () {
       // const { mobile } = this.form
-      axios({
+      this.$axios({
         method: 'GET',
-        url: `http://ttapi.research.itcast.cn/mp/v1_0/captchas/${this.form.mobile}`
+        url: `/captchas/${this.form.mobile}`
       }).then(res => {
         // console.log(this)VueComponent
         // 获取初始化验证码参数
@@ -220,9 +221,9 @@ export default {
             } = captchaObj.getValidate()
             // console.log(captchaObj.getValidate())
             // 调用 获取短信验证码 (极验 API2）接口，发送短信
-            axios({
+            this.$axios({
               method: 'GET',
-              url: `http://ttapi.research.itcast.cn/mp/v1_0/sms/codes/${this.form.mobile}`,
+              url: `/sms/codes/${this.form.mobile}`,
               params: { // 专门用来传递query查询字符串参数
                 challenge,
                 seccode,
