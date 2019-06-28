@@ -32,7 +32,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="频道列表">
-          <el-select
+          <!-- <el-select
             v-model="filterParams.channel_id"
             placeholder="请选择频道"
           >
@@ -46,7 +46,16 @@
               :value="item.id"
               :key='item.name'
             ></el-option>
-          </el-select>
+          </el-select> -->
+          <!-- <article-channels
+            v-model='filterParams.channel_id'
+            是下面两个的简写
+            :value='filterParams.channel_id'
+            @input='filterParams.channel_id = $event'
+          ></article-channels> -->
+          <article-channels
+            v-model='filterParams.channel_id'
+          ></article-channels>
         </el-form-item>
         <el-form-item label="时间选择">
           <el-col :span="11">
@@ -141,6 +150,7 @@
             <el-button
               type='success'
               plain
+              @click='$router.push(`/publish/${scope.row.id}`)'
             >修改</el-button>
             <el-button
               type='danger'
@@ -171,9 +181,13 @@
 </template>
 
 <script>
+import ArticleChannels from '@/components/article-channels'
 
 export default {
   name: 'Article',
+  components: {
+    ArticleChannels
+  },
   data () {
     return {
       page: 1,
@@ -238,7 +252,7 @@ export default {
           filterData[key] = this.filterParams[key]
         }
       }
-      console.log(filterData)
+      // console.log(filterData)
       this.$axios({
         method: 'GET',
         url: '/articles',
@@ -307,6 +321,13 @@ export default {
       this.page = 1
       this.loadArticles()
     }
+    // handleEdit (article) {
+    //   // console.log(article.id.toString())
+    //   this.$route.push({
+    //     name: 'publish',
+
+    //   })
+    // }
   }
 }
 </script>

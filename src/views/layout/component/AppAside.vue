@@ -15,8 +15,7 @@
     router
     default-active="2"
     class="el-menu-vertical-demo"
-    @open="handleOpen"
-    @close="handleClose"
+
     background-color="#545c64"
     text-color="#fff"
     active-text-color="#ffd04b"
@@ -44,7 +43,7 @@
       <i class="el-icon-s-home"></i>
       <span slot="title">首页</span>
     </el-menu-item>
-    <el-submenu index="1">
+    <el-submenu index="">
       <template slot="title">
         <i class="el-icon-eleme"></i><span>内容</span>
       </template>
@@ -84,12 +83,7 @@ export default {
     }
   },
   methods: {
-    handleOpen (key, keyPath) {
-      console.log(key, keyPath)
-    },
-    handleClose (key, keyPath) {
-      console.log(key, keyPath)
-    }
+
   }
 }
 </script>
