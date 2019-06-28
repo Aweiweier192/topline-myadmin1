@@ -30,7 +30,7 @@ const router = new Router({
       children: [ // 所有子路由都显示到父路由的router-view中
         {
           name: 'home',
-          path: '', // layout 默认子路由
+          path: '', // 什么都不写，layout 默认子路由
           component: () => import('@/views/home')
         },
         {
@@ -49,14 +49,18 @@ const router = new Router({
 })
 
 // 导航守卫 -- beforeEach路由导航开始前都会进入这里
-
+/*
+ * 所有路由导航都要经过这里
+ * to 去哪儿，from 来自哪里，next 允许通过的方法
+ */
 router.beforeEach((to, from, next) => {
   // 在此开始出现进度条
   nprogress.start()
+  // 获取登陆信息
   const userInfo = window.localStorage.getItem('userInfo')
   // 1. 如果不是到登陆页面，先判断是否已登陆
   if (to.path !== '/login') {
-    console.log(to)
+    // console.log(to)
     if (!userInfo) {
       next({ name: 'login' }) // 没登陆， 就先登陆
     } else {

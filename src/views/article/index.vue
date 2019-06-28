@@ -14,44 +14,46 @@
       </div>
       <el-form
         ref="form"
-        :model="form"
+        :model="filterParams"
         label-width="80px"
         size="mini"
       >
-        <el-form-item label="特殊资源">
+        <el-form-item label="文章状态">
           <el-radio-group
-            v-model="form.resource"
+            v-model="filterParams.status"
             size="medium"
           >
+            <el-radio label="">All</el-radio>
             <el-radio
-              border
-              label="线上品牌商赞助"
-            ></el-radio>
-            <el-radio
-              border
-              label="线下场地免费"
-            ></el-radio>
+              v-for='(item, index) of stateTypes'
+              :key='item.label'
+              :label="index + ''"
+            >{{item.label}}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="活动区域">
+        <el-form-item label="频道列表">
           <el-select
-            v-model="form.region"
-            placeholder="请选择活动区域"
+            v-model="filterParams.channel_id"
+            placeholder="请选择频道"
           >
             <el-option
-              label="区域一"
-              value="shanghai"
+              label='All'
+              value=''
             ></el-option>
             <el-option
-              label="区域二"
-              value="beijing"
+              v-for='item of channels'
+              :label="item.name"
+              :value="item.id"
+              :key='item.name'
             ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="活动时间">
+        <el-form-item label="时间选择">
           <el-col :span="11">
             <el-date-picker
-              v-model="value1"
+              value-format='yyyy-MM-dd'
+              v-model='begin_end_pubdate'
+              @change='handleDateChange'
               type="datetimerange"
               range-separator="至"
               start-placeholder="开始日期"
@@ -59,6 +61,13 @@
             >
             </el-date-picker>
           </el-col>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="articleLoading"
+            @click="handleOnSubmit"
+          >查询</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -69,83 +78,234 @@
         slot="header"
         class="clearfix"
       >
-        <span>共找到---条符合条件的内容</span>
+        <span>共找到-<strong>{{totalCount}}</strong>-条符合条件的内容</span>
       </div>
+      <!--
+        data: 用来指定表格数据，表格不需要我们自己动手遍历
+        只需要把数据给el-table的data属性就可以
+        然后配置el-table-column 需要展示的数据字段即可
+      -->
       <el-table
-        :data="tableData"
+        v-loading="articleLoading"
+        :data="articles"
         style="width: 100%"
       >
         <el-table-column
-          prop="date"
-          label="日期"
+          prop="cover.images[0]"
+          label="封面"
+          width='100'
+        >
+          <!--
+          表格列只能输出文本，如需要自定义里面的内容，则需要以下操作
+          slot-scope 是插槽作用域scope是起的一个名字
+          scope中的一个成员row, scope.row就是当前遍历项的对象
+          其中el-table-column就没意义了
+         -->
+          <template slot-scope='scope'>
+            <img
+              width='50'
+              :src="scope.row.cover.images[0]"
+              alt=""
+            >
+          </template>
+        </el-table-column>
+        <!-- <el-table-column
+          prop="id"
+          label="id"
+          width="180"
+        >
+        </el-table-column> -->
+        <el-table-column
+          prop="title"
+          label="标题"
           width="180"
         >
         </el-table-column>
         <el-table-column
-          prop="name"
-          label="姓名"
+          prop="pubdate"
+          label="发布日期"
           width="180"
         >
         </el-table-column>
         <el-table-column
-          prop="address"
-          label="地址"
+          prop="status"
+          label="状态"
+          width="180"
         >
+          <template slot-scope='scope'>
+            <el-tag :type="stateTypes[scope.row.status].type">{{stateTypes[scope.row.status].label}}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作">
+          <template slot-scope='scope'>
+            <el-button
+              type='success'
+              plain
+            >修改</el-button>
+            <el-button
+              type='danger'
+              plain
+              @click='handleDelete(scope.row)'
+            >删除</el-button>
+          </template>
         </el-table-column>
       </el-table>
     </el-card>
+    <!-- 数据分页
+      total：数据总条数
+      disabled：禁用分页
+      current-change: 改变时触发，自动获取当前页数
+      current-page: 使得当前页码高亮显示
+     -->
+    <el-pagination
+      background
+      layout="prev, pager, next"
+      :total="totalCount"
+      :current-page='page'
+      :disabled='articleLoading'
+      @current-change='handleCurrentChange'
+    >
+    </el-pagination>
   </div>
+
 </template>
 
 <script>
+
 export default {
   name: 'Article',
   data () {
     return {
-      form: {
-        name: '',
-        region: '',
-        date1: '',
-        date2: '',
-        delivery: false,
-        type: [],
-        resource: '',
-        desc: ''
+      page: 1,
+      articles: [],
+      totalCount: 0,
+      articleLoading: false,
+      stateTypes: [
+        {
+          type: 'info',
+          label: '草稿'
+        },
+        {
+          type: '',
+          label: '待审核'
+        },
+        {
+          type: 'success',
+          label: '审核通过'
+        },
+        {
+          type: 'warning',
+          label: '审核失败'
+        },
+        {
+          type: 'danger',
+          label: '已删除'
+        }
+      ],
+      channels: [],
+      filterParams: {
+        status: '',
+        channel_id: '',
+        begin_pubdate: '',
+        end_pubdate: ''
       },
-      value1: [new Date(2000, 10, 10, 10, 10), new Date(2000, 10, 11, 10, 10)],
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }]
+      begin_end_pubdate: []
     }
   },
   created () {
+    // 请求文章方法
     this.loadArticles()
+    this.loadChannels()
   },
   methods: {
-    loadArticles () {
+    loadChannels () {
       this.$axios({
         method: 'GET',
-        url: '/articles'
-      }).then(data => {
-        console.log(data)
+        url: '/channels'
+      }).then((data) => {
+        // console.log(data)
+        this.channels = data.channels
       })
     },
-    onSubmit () {
-      console.log('submit!')
+    loadArticles (page = 1) {
+      // 请求数据时禁用分页
+      this.articleLoading = true
+      // 过滤出有效的查询条件数据字段
+      const filterData = {}
+      for (let key in this.filterParams) {
+        // 判断属性是否为空
+        if (this.filterParams[key]) {
+          filterData[key] = this.filterParams[key]
+        }
+      }
+      console.log(filterData)
+      this.$axios({
+        method: 'GET',
+        url: '/articles',
+        params: {
+          page, // 请求页码，不传默认为 1
+          per_page: 10, // 请求每页数据个数，不传默认为 10
+          ...filterData // 将对象混入当前对象
+        }
+      }).then(data => {
+        // console.log(data)
+        this.articles = data.results // 列表数据
+        this.totalCount = data.total_count // 总记录数
+        // 得到数据后可用分页
+        this.articleLoading = false
+      })
+    },
+    handleCurrentChange (page) {
+      this.page = page
+      this.loadArticles(page)
+    },
+    handleDelete (article) {
+      // 但其在整数拼接时默认toString
+      // article.id.toString()
+      // this.$axios({
+      //   method: 'DELETE',
+      //   url: `/articles/${article.id}`
+      // }).then(data => {
+      //   // console.log(data)
+      //   this.loadArticles(this.page)
+      // })
+      // 添加提示功能
+      this.$confirm('确定删除吗？', '删除提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => { // 确定执行
+        // 发送删除请求
+        this.$axios({
+          method: 'DELETE',
+          url: `/articles/${article.id}`
+
+        }).then(data => {
+          // 提示删除成功
+          this.$message({
+            type: 'success',
+            message: '删除成功！'
+          })
+          // 重新加载数据
+          this.loadArticles(this.page)
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除！'
+        })
+      })
+    },
+    // 选定日期触发事件
+    handleDateChange (date) {
+      // console.log(date)
+      this.filterParams.begin_pubdate = date[0]
+      this.filterParams.end_pubdate = date[1]
+    },
+    handleOnSubmit () {
+      // console.log('submit!')
+      this.page = 1
+      this.loadArticles()
     }
   }
 }
@@ -154,5 +314,8 @@ export default {
 <style lang='less' scoped>
 .fliter-card {
   margin-bottom: 15px;
+}
+.list-card {
+  margin-bottom: 20px;
 }
 </style>

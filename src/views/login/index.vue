@@ -72,19 +72,21 @@
 // import axios from 'axios'
 // 加载极验模块, 会得到一个全局变量 initGeetest
 import '@/vendor/gt.js'
-const timerAll = 5
+const timerAll = 60
 
 export default {
   name: 'AppLogin',
   data () {
     return {
+      // 标签中的记时属性
       secondCount: timerAll,
+      // 是否禁用按钮，有计时器时表示计时器的唯一数字
       timerCount: null,
       initeMobile: '',
       codeLoading: false,
       form: {
         mobile: '15603266036',
-        code: '',
+        code: '246810',
         checked: ''
       },
       rules: {
@@ -131,7 +133,6 @@ export default {
         data: this.form
       }).then(data => { // >= 200 && < 400 的状态码都会进入这里
         // 在响应拦截器处，统一处理响应的数据格式 response.data.data = data
-        // console.log(res.data)
         // 使用本地存储，保存用户信息
         window.localStorage.setItem('userInfo', JSON.stringify(data))
         this.$message({
@@ -159,7 +160,6 @@ export default {
     handleSendCode () {
       // 禁用验证按钮
       this.codeLoading = true
-      // Function(props: array | string, callback: Function(errorMessage: string))
       // 验证手机
       this.$refs['ruleForm'].validateField('mobile', (errorMessage) => {
         if (errorMessage.trim().length > 0) {
@@ -170,11 +170,14 @@ export default {
 
       // 是否已有人机交互验证
       if (this.captchaObj) {
+        // 判断手机号是否一致
         if (this.initeMobile !== this.form.mobile) {
           // 除去已有的验证码DOM元素
           document.body.removeChild(document.querySelector('.geetest_panel'))
+          // 调用获取验证码接口
           this.showGeetest()
         } else {
+          // 手机号相同，弹出以有的人机交互验证
           this.captchaObj.verify()
         }
       } else {
@@ -234,7 +237,7 @@ export default {
               // 发送验证码成功
               // console.log(res.data)
               // 函数中的 function函数中的this指向window
-              // 验证码到计时
+              // 人机交互成功后，验证按钮到计时
               this.timeDown()
             })
           }).onError(function () {
@@ -249,12 +252,16 @@ export default {
     },
     // 倒计时
     timeDown () {
+      // timerCount不为null，禁用按钮
       this.timerCount = window.setInterval(() => {
         if (this.secondCount > 0) {
+          // 秒数递减
           this.secondCount--
         } else {
           this.secondCount = 0
+          // 为零时，停止倒计时
           window.clearInterval(this.timerCount)
+          // 解开禁用的按钮
           this.timerCount = null
           this.secondCount = timerAll
         }

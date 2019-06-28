@@ -39,15 +39,14 @@
         <el-menu-item index="1-4-1">选项1</el-menu-item>
       </el-submenu>
     </el-submenu> -->
-
+    <!-- 跳转到 Layout组件页面 -->
     <el-menu-item index="/">
       <i class="el-icon-s-home"></i>
       <span slot="title">首页</span>
     </el-menu-item>
     <el-submenu index="1">
       <template slot="title">
-        <i class="el-icon-eleme"></i>
-        <span>内容</span>
+        <i class="el-icon-eleme"></i><span>内容</span>
       </template>
       <el-menu-item index="/publish">发布文章</el-menu-item>
       <!-- index中的路由也可以使用name名 -->

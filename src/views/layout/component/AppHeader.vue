@@ -26,12 +26,15 @@
 </template>
 
 <script>
-// const {name, photo} = JSON.parse(window.localStorage.getItem('userInfo'))
+const { name, photo } = JSON.parse(window.localStorage.getItem('userInfo'))
 export default {
   name: 'AppHeader',
   data () {
     return {
-      userInfo: {}
+      userInfo: {
+        name,
+        photo
+      }
     }
   },
   created () {

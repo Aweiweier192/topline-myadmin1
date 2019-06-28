@@ -3,6 +3,8 @@ import App from './App.vue'
 import ElementUI from 'element-ui'
 // 加载axios模块
 import axios from 'axios'
+// 处理js的大数字问题，超出js数据安全范围
+import JSONbig from 'json-bigint'
 
 // 优先查找文件,如文件找不到则找目录
 // 找到目录,优先加载目录中的index.js
@@ -30,13 +32,28 @@ axios.defaults.baseURL = 'http://ttapi.research.itcast.cn/mp/v1_0/'
 
 Vue.prototype.$axios = axios
 
+// 使用JSONbig 处理返回数据中超出js安全
+// JSONbig 自己会分析数据中的那个数字超出范围
+// 由于后端得数据id超出了js的安全整数范围，导致整数无法精确表示
+// 可使用json-bigint处理，他会帮你把超出范围的数字处理好
+axios.defaults.transformResponse = [function (data) {
+  // data是未经js处理的后端响应数据：JSON格式字符串
+  // return JSONbig.parse(data)
+  // console.log(data)
+  try {
+    return JSONbig.parse(data)
+  } catch (err) {
+    return data
+  }
+}]
+
 /*
   Axios 请求拦截器（先经过这里，再去发请求） -- 统一授权token
   所有使用axios发起的请求都要先经过这里
   config是本次请求相关的配置对象
   return config 就是允许通过的方式
-
 */
+
 axios.interceptors.request.use(config => {
   const userInfo = JSON.parse(window.localStorage.getItem('userInfo'))
   // 只有登陆了才给需要token的接口统一添加token令牌
@@ -53,10 +70,15 @@ axios.interceptors.request.use(config => {
 
 // Axios 响应拦截器（先经过这里，再回到发请求的地方） -- 统一处理响应数据
 axios.interceptors.response.use(response => { // >= 200 && < 400 的状态码会进入这里
-  console.log(response)
+  // console.log(response)
   // response与发请求的res中的内容是一样的
   // 统一设置返回的数据格式
-  return response.data.data
+  if (typeof response.data === 'object') {
+    return response.data.data
+  } else {
+    return response.data
+  }
+  // return response.data.data
 }, error => { // >= 400 的状态码会进入这里
   const status = error.response.status
   // 如果401，说明token过期或未传，返回登录页重新登陆
